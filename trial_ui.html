@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Avatar Chat</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#0a0a0f;color:#f0f0f0;min-height:100vh}
+    .container{max-width:700px;margin:0 auto;padding:20px}
+    h1{text-align:center;margin-bottom:24px;color:#a78bfa;font-size:1.5rem;letter-spacing:1px}
+    .card{background:#13131f;border-radius:16px;padding:20px;margin-bottom:20px;border:1px solid #2a2a4a}
+    .card h2{color:#c4b5fd;margin-bottom:16px;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px}
+    label{display:block;font-size:0.82rem;color:#9ca3af;margin-bottom:4px;margin-top:14px}
+    input,textarea,select{width:100%;padding:10px 12px;border-radius:8px;background:#0a0a1a;border:1px solid #2a2a4a;color:#f0f0f0;font-size:0.92rem;outline:none;font-family:inherit}
+    input:focus,textarea:focus{border-color:#7c3aed}
+    textarea{resize:vertical;min-height:65px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button{margin-top:16px;width:100%;padding:12px;background:#7c3aed;color:white;border:none;border-radius:10px;font-size:0.95rem;cursor:pointer;transition:background 0.2s;font-family:inherit}
+    button:hover{background:#6d28d9}
+    button:disabled{background:#4b5563;cursor:not-allowed}
+    button.secondary{background:#1e1e3a;border:1px solid #3b3b5c;margin-top:8px}
+    button.secondary:hover{background:#2a2a4a}
+    button.danger{background:#7f1d1d;border:1px solid #991b1b;margin-top:8px}
+    button.danger:hover{background:#991b1b}
+    #status{font-size:0.82rem;color:#6ee7b7;margin-top:10px;min-height:18px}
+    #chat-box{height:380px;overflow-y:auto;padding:14px;background:#0a0a1a;border-radius:12px;margin-bottom:12px;border:1px solid #2a2a4a;display:flex;flex-direction:column;gap:8px}
+    .msg{max-width:78%;padding:10px 14px;border-radius:18px;font-size:0.93rem;line-height:1.5;word-break:break-word}
+    .msg.user{background:#7c3aed;align-self:flex-end;border-bottom-right-radius:4px}
+    .msg.assistant{background:#1e1e3a;align-self:flex-start;border-bottom-left-radius:4px;border:1px solid #2a2a4a}
+    .msg .sender{font-size:0.72rem;margin-bottom:5px;opacity:0.5}
+    .chat-input-row{display:flex;gap:10px}
+    .chat-input-row input{flex:1;margin:0}
+    .chat-input-row button{width:auto;margin:0;padding:10px 20px}
+    .typing{color:#6b7280;font-size:0.83rem;font-style:italic;padding:4px 10px;align-self:flex-start}
+
+    /* Analysis Report */
+    #report-card{display:none}
+    .big-score{text-align:center;padding:24px 0 16px}
+    .big-score .number{font-size:4rem;font-weight:700;color:#a78bfa;line-height:1}
+    .big-score .label{font-size:0.85rem;color:#9ca3af;margin-top:6px}
+    .summary-text{background:#0a0a1a;border-radius:10px;padding:14px;font-size:0.93rem;line-height:1.6;color:#d1d5db;border:1px solid #2a2a4a;margin-bottom:16px}
+    .scores-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .score-item{background:#0a0a1a;border-radius:10px;padding:12px;border:1px solid #2a2a4a}
+    .score-item .s-label{font-size:0.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+    .score-item .s-bar-wrap{background:#1e1e3a;border-radius:20px;height:6px;margin-bottom:6px}
+    .score-item .s-bar{height:6px;border-radius:20px;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width 0.8s ease}
+    .score-item .s-val{font-size:0.82rem;color:#c4b5fd;font-weight:600}
+    .score-item .s-exp{font-size:0.78rem;color:#6b7280;margin-top:4px;line-height:1.4}
+    .section-title{font-size:0.78rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:16px}
+    .list-items{display:flex;flex-direction:column;gap:6px}
+    .list-item{background:#0a0a1a;border-radius:8px;padding:10px 14px;font-size:0.88rem;color:#d1d5db;border:1px solid #2a2a4a;line-height:1.4}
+    .list-item.good{border-left:3px solid #6ee7b7}
+    .list-item.bad{border-left:3px solid #f87171}
+    .impression-box{background:#1e1e3a;border-radius:10px;padding:14px;font-size:0.9rem;color:#c4b5fd;border:1px solid #3b3b5c;line-height:1.6;margin-top:8px;font-style:italic}
+    .tip-box{background:#1a1a0a;border-radius:10px;padding:14px;font-size:0.9rem;color:#fcd34d;border:1px solid #3b2f00;line-height:1.6;margin-top:8px}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>💬 Avatar Chat</h1>
+
+  <!-- Create Avatar -->
+  <div class="card" id="create-card">
+    <h2>✨ Create Avatar</h2>
+    <div class="row">
+      <div>
+        <label>Her Name *</label>
+        <input id="av-name" type="text" placeholder="e.g. Priya"/>
+      </div>
+      <div>
+        <label>Her Age</label>
+        <input id="av-age" type="number" placeholder="e.g. 22"/>
+      </div>
+    </div>
+    <label>Her Location</label>
+    <input id="av-location" type="text" placeholder="e.g. Mumbai, Ahmedabad"/>
+    <label>Your relationship with her *</label>
+    <input id="av-relation" type="text" placeholder="e.g. crush, best friend, ex, classmate"/>
+    <label>Your situation / bond with her</label>
+    <textarea id="av-situation" placeholder="e.g. We met at college. She sits next to me in class. We've been texting for 2 months but never hung out outside college."></textarea>
+    <label>Her occupation</label>
+    <input id="av-occupation" type="text" placeholder="e.g. BBA student, software engineer"/>
+    <label>Her interests & hobbies</label>
+    <input id="av-interests" type="text" placeholder="e.g. reading, coffee, indie music, instagram reels"/>
+    <label>Her behaviour & personality</label>
+    <textarea id="av-behaviour" placeholder="e.g. Shy at first but warm once comfortable. Gets jealous easily. Moody sometimes. Hates being ignored."></textarea>
+    <label>Her style of communication</label>
+    <input id="av-commstyle" type="text" placeholder="e.g. casual, texts in short bursts, takes time to reply"/>
+    <label>Slangs & expressions she uses</label>
+    <input id="av-slangs" type="text" placeholder="e.g. fr, no cap, lmaooo, ugh, omg, bestie"/>
+    <label>Language</label>
+    <input id="av-language" type="text" value="English"/>
+    <button onclick="createAvatar()">Create Avatar</button>
+    <div id="status"></div>
+  </div>
+
+  <!-- Chat -->
+  <div class="card">
+    <h2>💬 Chat</h2>
+    <label>Select Avatar</label>
+    <select id="avatar-select">
+      <option value="">— create an avatar first —</option>
+    </select>
+    <button class="secondary" onclick="loadAvatars()">🔄 Refresh List</button>
+
+    <div id="chat-box" style="margin-top:16px"></div>
+    <div class="chat-input-row">
+      <input id="msg-input" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()"/>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    <button class="danger" onclick="endChat()">🔚 End Chat & Get Analysis</button>
+  </div>
+
+  <!-- Analysis Report -->
+  <div class="card" id="report-card">
+    <h2>📊 Your Performance Report</h2>
+
+    <div class="big-score">
+      <div class="number" id="r-score">—</div>
+      <div class="label">Overall Score out of 10</div>
+    </div>
+
+    <div class="summary-text" id="r-summary"></div>
+
+    <div class="section-title">Breakdown</div>
+    <div class="scores-grid" id="r-scores-grid"></div>
+
+    <div class="section-title">✅ What You Did Well</div>
+    <div class="list-items" id="r-well"></div>
+
+    <div class="section-title">⚠️ What To Improve</div>
+    <div class="list-items" id="r-improve"></div>
+
+    <div class="section-title">💭 Her Impression of You</div>
+    <div class="impression-box" id="r-impression"></div>
+
+    <div class="section-title">💡 Tip For Next Time</div>
+    <div class="tip-box" id="r-tip"></div>
+
+    <button class="secondary" style="margin-top:20px" onclick="resetReport()">🔄 Start New Chat</button>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://127.0.0.1:8000';
+  const USER_ID = 'user_001';
+
+  async function createAvatar() {
+    const btn = event.target;
+    btn.disabled = true;
+    document.getElementById('status').textContent = 'Creating...';
+    const body = {
+      name: document.getElementById('av-name').value.trim(),
+      age: parseInt(document.getElementById('av-age').value) || null,
+      location: document.getElementById('av-location').value || null,
+      relationship: document.getElementById('av-relation').value.trim(),
+      situation: document.getElementById('av-situation').value || null,
+      occupation: document.getElementById('av-occupation').value || null,
+      interests: document.getElementById('av-interests').value || null,
+      behaviour: document.getElementById('av-behaviour').value || null,
+      communication_style: document.getElementById('av-commstyle').value.trim(),
+      slangs: document.getElementById('av-slangs').value || null,
+      language: document.getElementById('av-language').value || 'English'
+    };
+    if (!body.name || !body.relationship || !body.communication_style) {
+      document.getElementById('status').textContent = '❌ Name, Relationship and Communication Style are required.';
+      btn.disabled = false; return;
+    }
+    try {
+      const res = await fetch(`${API}/avatars`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'x-user-id': USER_ID},
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      document.getElementById('status').textContent = `✅ ${data.avatar.name} created!`;
+      await loadAvatars();
+    } catch(e) {
+      document.getElementById('status').textContent = '❌ Error: ' + e.message;
+    }
+    btn.disabled = false;
+  }
+
+  async function loadAvatars() {
+    try {
+      const res = await fetch(`${API}/avatars`, {headers: {'x-user-id': USER_ID}});
+      const data = await res.json();
+      const select = document.getElementById('avatar-select');
+      select.innerHTML = '<option value="">— select —</option>';
+      data.avatars.forEach(av => {
+        const opt = document.createElement('option');
+        opt.value = av.id;
+        opt.textContent = `${av.name} · ${av.relationship}`;
+        select.appendChild(opt);
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  async function sendMessage() {
+    const avatarId = document.getElementById('avatar-select').value;
+    const input = document.getElementById('msg-input');
+    const message = input.value.trim();
+    if (!avatarId || !message) return;
+
+    appendMsg('user', 'You', message);
+    input.value = '';
+
+    const box = document.getElementById('chat-box');
+    const typing = document.createElement('div');
+    typing.className = 'typing'; typing.id = 'typing-indicator';
+    typing.textContent = 'typing...';
+    box.appendChild(typing);
+    box.scrollTop = box.scrollHeight;
+
+    try {
+      const res = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: USER_ID, avatar_id: parseInt(avatarId), message})
+      });
+      const data = await res.json();
+      document.getElementById('typing-indicator')?.remove();
+      appendMsg('assistant', data.avatar_name, data.reply);
+    } catch(e) {
+      document.getElementById('typing-indicator')?.remove();
+      appendMsg('assistant', 'Error', '❌ Could not connect.');
+    }
+  }
+
+  async function endChat() {
+    const avatarId = document.getElementById('avatar-select').value;
+    if (!avatarId) { alert('Select an avatar first.'); return; }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Analysing your chat...';
+
+    try {
+      const res = await fetch(`${API}/analyse`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: USER_ID, avatar_id: parseInt(avatarId)})
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Error: ' + err.detail);
+        btn.disabled = false;
+        btn.textContent = '🔚 End Chat & Get Analysis';
+        return;
+      }
+
+      const data = await res.json();
+      showReport(data);
+    } catch(e) {
+      alert('Failed to get analysis: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🔚 End Chat & Get Analysis';
+  }
+
+  function showReport(data) {
+    // Hide chat, show report
+    document.getElementById('report-card').style.display = 'block';
+    document.getElementById('report-card').scrollIntoView({behavior: 'smooth'});
+
+    document.getElementById('r-score').textContent = data.overall_score + '/10';
+    document.getElementById('r-summary').textContent = data.summary;
+    document.getElementById('r-impression').textContent = data.her_impression;
+    document.getElementById('r-tip').textContent = '💡 ' + data.tip_for_next_time;
+
+    // Score bars
+    const scoreLabels = {
+      confidence: 'Confidence',
+      humour: 'Humour',
+      conversation_flow: 'Conversation Flow',
+      emotional_intelligence: 'Emotional Intelligence',
+      authenticity: 'Authenticity'
+    };
+    const grid = document.getElementById('r-scores-grid');
+    grid.innerHTML = '';
+    for (const [key, label] of Object.entries(scoreLabels)) {
+      const val = data.scores[key];
+      const exp = data.score_explanations[key];
+      const pct = (val / 10) * 100;
+      grid.innerHTML += `
+        <div class="score-item">
+          <div class="s-label">${label}</div>
+          <div class="s-bar-wrap"><div class="s-bar" style="width:${pct}%"></div></div>
+          <div class="s-val">${val}/10</div>
+          <div class="s-exp">${exp}</div>
+        </div>`;
+    }
+
+    // Well
+    const wellEl = document.getElementById('r-well');
+    wellEl.innerHTML = '';
+    data.what_went_well.forEach(w => {
+      wellEl.innerHTML += `<div class="list-item good">${w}</div>`;
+    });
+
+    // Improve
+    const impEl = document.getElementById('r-improve');
+    impEl.innerHTML = '';
+    data.what_to_improve.forEach(w => {
+      impEl.innerHTML += `<div class="list-item bad">${w}</div>`;
+    });
+  }
+
+  function resetReport() {
+    document.getElementById('report-card').style.display = 'none';
+    document.getElementById('chat-box').innerHTML = '';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function appendMsg(role, sender, content) {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `<div class="sender">${sender}</div>${content}`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  loadAvatars();
+</script>
+</body>
+</html>
